@@ -13,4 +13,5 @@ func RouterInit() {
 	http.HandleFunc("/contact/addfriend", controller.User_Contact_Controller)
 	//查询用户好友
 	http.HandleFunc("/contact/loadfriend", controller.User_Contact_Search)
+	http.HandleFunc("/chat", controller.Chat)
 }

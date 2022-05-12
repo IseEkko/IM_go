@@ -29,6 +29,7 @@ func (users *UserService) Register(mobile, plainpwd, nickname, avatar, sex strin
 	tmp.Sex = sex
 	tmp.Salt = fmt.Sprintf("%06d", rand.Int31n(10000))
 	tmp.Passwd = util.MakePasswd(plainpwd, tmp.Salt)
+	tmp.Token = fmt.Sprintf("%08d", rand.Int31())
 	insert := global.DB.Create(&tmp)
 	err = insert.Error
 	if err != nil {
@@ -40,7 +41,7 @@ func (users *UserService) Register(mobile, plainpwd, nickname, avatar, sex strin
 //用户登录
 func (users *UserService) Login(mobile, password string) (ok bool, err error, user model.User) {
 	var tmp = model.User{Mobile: mobile}
-	result := global.DB.First(&tmp)
+	result := global.DB.Where("mobile = ? ", mobile).First(&tmp)
 	if result.Error != nil {
 		return false, errors.New("用户登录查询失败"), user
 	}
@@ -48,8 +49,22 @@ func (users *UserService) Login(mobile, password string) (ok bool, err error, us
 		return false, errors.New("用户不存在"), user
 	}
 	passwords := util.MakePasswd(password, tmp.Salt)
+	fmt.Println("密码检测", tmp.Passwd, passwords, tmp.ID)
 	if tmp.Passwd == passwords {
 		return true, err, tmp
 	}
 	return false, errors.New("用户密码错误"), user
+}
+
+//查询用户基本信息
+func (users *UserService) Find(userid int64) (model.User, error) {
+	if userid == 0 {
+		return model.User{}, errors.New("不能为空")
+	}
+	var user = model.User{}
+	tx := global.DB.Where("id = ?", userid).First(&user)
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		return user, errors.New("没有此用户")
+	}
+	return user, nil
 }

@@ -105,12 +105,10 @@
                     if(!!user){
                         this.profile.avatar = user.avatar;
                         this.profile.nickname = user.nickname;
-
                         this.profile.memo = user.memo;
-                        var url="ws://"+location.host+"/chat?id="+userId()+"&token=" +user.token;
-                        this.webSocket=new WebSocket(url);
-                        this.initwebsocket()
                     }
+
+                    this.initwebsocket()
 
                 },
                 mounted:function(){
@@ -224,7 +222,9 @@
                         var that =this;
                         that.timer = setTimeout(function(){
                             window.scrollTo(0, document.getElementById("convo").offsetHeight);
+                            console.log("错误1")
                             clearTimeout(that.timer)
+                            console.log("错误2")
                         },100)
 
                     },
@@ -275,7 +275,7 @@
                         userid = ""+userid;
                         var userinfo = this.usermap[userid];
                         if(!userinfo){
-                            post("user/find",{id:userid},function(res){
+                            post("user/find",{id:parseInt(userid)},function(res){
                                 cb(res.data);
                                 this.usermap[userid] = res.data;
                             }.bind(this))
@@ -291,14 +291,27 @@
 
                     },
                     initwebsocket:function(){
+                        var url="ws://"+location.host+"/chat?id="+userId()+"&token=" +util.parseQuery("token");
+                        this.webSocket=new WebSocket(url);
+                        //消息处理
                         this.webSocket.onmessage = function(evt){
-                            this.onmessage(JSON.parse(evt.data));
+                            //{"data":"}",...}
+                            if(evt.data.indexOf("}")>-1){
+                                this.onmessage(JSON.parse(evt.data));
+                            }else{
+                                console.log("recv<=="+evt.data)
+                            }
                         }.bind(this)
+                        //关闭回调
                         this.webSocket.onclose=function (evt) {
                             console.log(evt.data)
                         }
+                        //出错回调
                         this.webSocket.onerror=function (evt) {
                             console.log(evt.data)
+                        }
+                        {
+                            this.webSocket.send()
                         }
                     },
                     sendmsg:function(){
@@ -307,15 +320,11 @@
                     loadfriends:function(){
                         var that = this;
                         post("contact/loadfriend",{userid:userId()},function(res){
-                            console.log("测试用1"+res)
                             that.friends = res.rows ||[];
                             var usermap = this.usermap;
-                            console.log(usermap)
-                            console.log("测试用"+res.rows)
                             for(var i in res.rows){
                                 var k = ""+res.rows[i].id
                                 usermap[k]=res.rows[i];
-                                console.log("ceshi"+usermap[k])
                             }
                             this.usermap = usermap;
                         }.bind(this))
